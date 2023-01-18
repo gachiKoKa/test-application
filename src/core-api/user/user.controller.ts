@@ -6,8 +6,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { CreateUserDto, UpdateUserDto, User } from '@shared';
+import { CreateUserDto, GetUsersDto, UpdateUserDto, User } from '@shared';
 
 import { UserService } from './user.service';
 
@@ -21,8 +22,8 @@ export class UserController {
   }
 
   @Get()
-  public async getUsers(): Promise<User[]> {
-    return this.userService.getUsers();
+  public async getUsers(@Query() getUsersDto: GetUsersDto): Promise<User[]> {
+    return this.userService.getUsers(getUsersDto);
   }
 
   @Get(':id')

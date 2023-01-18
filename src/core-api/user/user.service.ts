@@ -3,7 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto, UpdateUserDto, User, UserRepository } from '@shared';
+import {
+  CreateUserDto,
+  GetUsersDto,
+  UpdateUserDto,
+  User,
+  UserRepository,
+} from '@shared';
 
 @Injectable()
 export class UserService {
@@ -19,8 +25,8 @@ export class UserService {
     }
   }
 
-  public async getUsers(): Promise<User[]> {
-    return this.userRepository.find();
+  public async getUsers(getUsersDto: GetUsersDto): Promise<User[]> {
+    return this.userRepository.getUsers(getUsersDto);
   }
 
   public async getUser(id: number): Promise<User> {
