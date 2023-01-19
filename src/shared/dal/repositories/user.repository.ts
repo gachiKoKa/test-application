@@ -19,7 +19,6 @@ export class UserRepository extends Repository<User> {
 
   private buildWhereQuery(filter: GetUsersDto, qb: SelectQueryBuilder<User>) {
     if (filter.orderBy) {
-      console.log(filter.orderBy);
       qb.orderBy('id', filter.orderBy);
     }
 
