@@ -21,7 +21,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:create": "npx typeorm migration:create ./src/shared/dal/migrations/$npm_config_name",
     "migration:run": "npx typeorm-ts-node-esm migration:run -d ./orm.config.ts",
-    "migration:generate": "npx typeorm-ts-node-esm migration:generate ./src/shared/dal/migrations/$npm_config_name -d ./orm.config.ts"
+    "migration:generate": "npx typeorm-ts-node-esm migration:generate ./src/shared/dal/migrations/$npm_config_name -d ./orm.config.ts",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@nestjs/common": "^8.0.0",
@@ -54,6 +55,7 @@
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
+    "husky": "^8.0.3",
     "jest": "28.0.3",
     "prettier": "^2.3.2",
     "source-map-support": "^0.5.20",
@@ -81,7 +83,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "@shared" : "<rootDir>/shared"
+      "@shared": "<rootDir>/shared"
     }
   }
 }
