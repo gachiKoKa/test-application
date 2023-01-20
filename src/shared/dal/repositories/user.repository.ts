@@ -18,9 +18,11 @@ export class UserRepository extends Repository<User> {
   }
 
   private buildWhereQuery(filter: GetUsersDto, qb: SelectQueryBuilder<User>) {
-    if (filter.orderBy) {
-      qb.orderBy('id', filter.orderBy);
+    if (filter.orderBy && filter.sortBy) {
+      qb.orderBy(filter.sortBy, filter.orderBy);
     }
+
+    qb.limit(filter.limit ?? 20).offset(filter.offset ?? 0);
 
     return qb;
   }
