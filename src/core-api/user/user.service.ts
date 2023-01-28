@@ -25,23 +25,9 @@ export class UserService {
     }
   }
 
-  public async getUsers(getUsersDto: GetUsersDto): Promise<User[]> {
-    return this.userRepository.getUsers(getUsersDto);
-  }
-
-  public async getUser(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-
-    if (!user) {
-      throw new NotFoundException();
-    }
-
-    return user;
-  }
-
   public async updateUser(
-    id: number,
-    updateUserDto: UpdateUserDto,
+      id: number,
+      updateUserDto: UpdateUserDto,
   ): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -56,5 +42,19 @@ export class UserService {
     } catch (e) {
       throw new BadRequestException(e.message);
     }
+  }
+
+  public async getUser(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException();
+    }
+
+    return user;
+  }
+
+  public async getUsers(getUsersDto: GetUsersDto): Promise<User[]> {
+    return this.userRepository.getUsers(getUsersDto);
   }
 }
