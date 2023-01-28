@@ -1,13 +1,24 @@
 import { GetUsersDto, User, UserRepository } from '@shared';
 import { Test } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { DeepPartial } from 'typeorm';
+import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
+import Mock = jest.Mock;
 
 import { UserService } from './user.service';
-import { OrmConfig } from '../../../orm.config';
-import { NotFoundException } from '@nestjs/common';
+
+type MockedRepositoryParameters =
+  | GetUsersDto
+  | DeepPartial<User>
+  | User
+  | FindOneOptions<User>;
 
 describe('UserService', () => {
   let userService: UserService;
-  let users: User[];
+  let userRepository: UserRepository;
+  let user: User;
+  let userRepoFindException = false;
+  let userRepoSaveException = false;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -15,157 +26,139 @@ describe('UserService', () => {
         UserService,
         {
           provide: UserRepository,
-          useFactory: () => new UserRepository(OrmConfig),
+          useFactory: (): Partial<
+            Record<
+              keyof UserRepository,
+              Mock<User | Promise<User[] | User>, [MockedRepositoryParameters]>
+            >
+          > => ({
+            getUsers: jest.fn(
+              async (getUsersDto: GetUsersDto): Promise<User[]> => [],
+            ),
+            create: jest.fn((entityLike: DeepPartial<User>): User => user),
+            save: jest.fn(async (entity: User): Promise<User> => {
+              if (userRepoSaveException) {
+                throw new BadRequestException();
+              }
+
+              return user;
+            }),
+            findOne: jest.fn(
+              async (options: FindOneOptions<User>): Promise<User> => {
+                if (userRepoFindException) {
+                  throw new NotFoundException();
+                }
+
+                return user;
+              },
+            ),
+          }),
         },
       ],
     }).compile();
 
     userService = moduleRef.get<UserService>(UserService);
+    userRepository = moduleRef.get<UserRepository>(UserRepository);
   });
 
   beforeEach(() => {
-    users = [
-      {
-        id: 1,
-        uuid: '6a35c97a-6148-4818-b606-8bc804d42816',
-        email: 'test@test.com',
-        password: 'test',
-        createdAt: new Date('2023-01-20 12:00:00'),
-        updatedAt: new Date('2023-01-20 12:00:00'),
-        async hashPassword(): Promise<void> {},
-        toJSON(): Record<string, any> {
-          return {};
-        },
-        async generateUuid(): Promise<void> {},
+    user = {
+      id: 1,
+      uuid: '6a35c97a-6148-4818-b606-8bc804d42816',
+      email: 'test@test.com',
+      password: 'test',
+      createdAt: new Date('2023-01-20 12:00:00'),
+      updatedAt: new Date('2023-01-20 12:00:00'),
+      async hashPassword(): Promise<void> {},
+      toJSON(): Record<string, any> {
+        return {};
       },
-      {
-        id: 2,
-        uuid: '78676cbe-243a-4f93-b92d-a96f900ac245',
-        email: 'test1@test.com',
-        password: 'test1',
-        createdAt: new Date('2023-01-20 12:00:00'),
-        updatedAt: new Date('2023-01-20 12:00:00'),
-        async hashPassword(): Promise<void> {},
-        toJSON(): Record<string, any> {
-          return {};
-        },
-        async generateUuid(): Promise<void> {},
-      },
-    ];
+      async generateUuid(): Promise<void> {},
+    };
   });
 
-  describe('getUsers', () => {
-    let localUsers: User[] = [];
-
-    beforeAll(async () => {
-      jest
-        .spyOn(userService, 'getUsers')
-        .mockImplementation(
-          async (getUsersDto: GetUsersDto): Promise<User[]> => {
-            if (!Object.keys(getUsersDto).length) {
-              return users;
-            }
-
-            if (getUsersDto.orderBy && getUsersDto.sortBy) {
-              return localUsers.sort((a, b) => {
-                if (
-                  getUsersDto.orderBy === 'ASC' &&
-                  a[getUsersDto.sortBy] > b[getUsersDto.sortBy]
-                ) {
-                  return 1;
-                }
-
-                if (
-                  getUsersDto.orderBy === 'ASC' &&
-                  a[getUsersDto.sortBy] < b[getUsersDto.sortBy]
-                ) {
-                  return -1;
-                }
-
-                if (
-                  getUsersDto.orderBy === 'DESC' &&
-                  a[getUsersDto.sortBy] < b[getUsersDto.sortBy]
-                ) {
-                  return 1;
-                }
-
-                if (
-                  getUsersDto.orderBy === 'DESC' &&
-                  a[getUsersDto.sortBy] > b[getUsersDto.sortBy]
-                ) {
-                  return -1;
-                }
-
-                return 0;
-              });
-            }
-
-            if (getUsersDto.limit && getUsersDto.offset) {
-              return localUsers.splice(getUsersDto.offset, getUsersDto.limit);
-            }
-          },
-        );
-    });
-
+  describe('createUser', () => {
     beforeEach(() => {
-      localUsers = users;
+      userRepoSaveException = false;
     });
 
-    it('should return array of all users', async () => {
-      expect(await userService.getUsers({})).toBe(localUsers);
+    it('should saved a new user', async () => {
+      const actualResult = await userService.createUser({
+        email: 'test@test.com',
+        password: 'test',
+      });
+
+      expect(actualResult).toEqual(user);
     });
 
-    it('should return ASC sorted array of users sorted by id field', async () => {
-      const result = [...localUsers];
+    it('should throw an error during saving user', async () => {
+      userRepoSaveException = true;
 
-      expect(
-        await userService.getUsers({ orderBy: 'ASC', sortBy: 'id' }),
-      ).toEqual(result);
+      await expect(
+        userService.createUser({
+          email: 'test@test.com',
+          password: 'test',
+        }),
+      ).rejects.toThrowError(BadRequestException);
+    });
+  });
+
+  describe('updateUser', () => {
+    beforeEach(() => {
+      userRepoFindException = false;
+      userRepoSaveException = false;
     });
 
-    it('should return DESC sorted array of users sorted by id field', async () => {
-      const result = [...localUsers].sort((a, b) => (a.id < b.id ? 1 : -1));
+    it('should update a user', async () => {
+      const actualResult = await userService.updateUser(1, user);
 
-      expect(
-        await userService.getUsers({ orderBy: 'DESC', sortBy: 'id' }),
-      ).toEqual(result);
+      expect(actualResult).toEqual(user);
     });
 
-    it('should return array of users according to limit and offset', async () => {
-      const result: User[] = [];
-      result.push(localUsers[1]);
+    it('should not find a user', async () => {
+      userRepoFindException = true;
 
-      expect(await userService.getUsers({ limit: 1, offset: 1 })).toEqual(
-        result,
+      await expect(userService.updateUser(1, user)).rejects.toThrowError(
+        NotFoundException,
+      );
+    });
+
+    it('should not save a user', async () => {
+      userRepoSaveException = true;
+
+      await expect(userService.updateUser(1, user)).rejects.toThrowError(
+        BadRequestException,
       );
     });
   });
 
   describe('getUser', () => {
-    beforeAll(() => {
-      jest
-        .spyOn(userService, 'getUser')
-        .mockImplementation(async (id: number): Promise<User> => {
-          const user = users.find((user) => user.id === id);
-
-          if (!user) {
-            throw new NotFoundException();
-          }
-
-          return user;
-        });
+    beforeEach(() => {
+      userRepoFindException = false;
     });
 
-    it('should return existed user', async () => {
-      const result = users[0];
+    it('should return a user', async () => {
+      const actualResult = await userService.getUser(1);
 
-      expect(await userService.getUser(users[0].id)).toEqual(result);
+      expect(actualResult).toEqual(user);
     });
 
-    it('should throw NotFoundException', async () => {
-      await expect(
-        userService.getUser(users[users.length - 1].id + 1),
-      ).rejects.toThrowError(NotFoundException);
+    it('should throw an error when user not found', async () => {
+      userRepoFindException = true;
+
+      await expect(userService.getUser(1)).rejects.toThrowError(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getUsers', () => {
+    it('should be called with correct parameters', async () => {
+      const filter = { orderBy: 'ASC' } as Partial<GetUsersDto>;
+
+      await userService.getUsers(filter);
+
+      expect(userRepository.getUsers).toHaveBeenCalledWith(filter);
     });
   });
 });
