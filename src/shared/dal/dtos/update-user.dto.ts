@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+} from 'class-validator';
 
 export class UpdateUserDto {
   @IsEmail()
@@ -9,4 +15,8 @@ export class UpdateUserDto {
   @IsNotEmpty()
   @IsOptional()
   public readonly password?: string;
+
+  @IsPhoneNumber('UA')
+  @IsOptional()
+  public readonly phone?: string;
 }
