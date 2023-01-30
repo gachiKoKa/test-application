@@ -20,8 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:create": "npx typeorm migration:create ./src/shared/dal/migrations/$npm_config_name",
-    "migration:run": "npx typeorm-ts-node-esm migration:run -d ./orm.config.ts",
-    "migration:generate": "npx typeorm-ts-node-esm migration:generate ./src/shared/dal/migrations/$npm_config_name -d ./orm.config.ts",
+    "migration:run": "npm run build && npx typeorm-ts-node-esm migration:run -d ./orm.config.ts",
+    "migration:generate": "npm run build && npx typeorm-ts-node-esm migration:generate ./src/shared/dal/migrations/$npm_config_name -d ./orm.config.ts",
     "prepare": "husky install"
   },
   "dependencies": {
